@@ -5,7 +5,9 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const fs = require('fs');
 const _ = require('lodash');
-const db = require('../database/index');
+const axios = require('axios');
+const db = require('../database/index.js');
+const helpers = require('./server-helpers.js');
 require('dotenv').config();
 require('../TestFunctions');
 
@@ -110,6 +112,48 @@ app.patch('/user/avatar', (req, res) => {
     }
   });
 });
+
+// API SERVER ==============================
+
+app.post('/api/user/treasure', (req, res) => {
+
+});
+
+app.post('/api/server/treasure', (req, res) => {
+  const randomNolaLat = (Math.random() * (30.020441 - 29.920557)) + 29.920557;
+  const randomNolaLong = (Math.random() * (-90.042287 - -90.120793)) + -90.120793;
+  axios({
+    method: 'GET',
+    url: `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${randomNolaLat},${randomNolaLong}&rankby=distance&key=${process.env.G_PLACES_API}`,
+  })
+    .then(({ data }) => {
+      console.log(data.results[0].geometry.location.lat, data.results[0].geometry.location.lng);
+      const lat = data.results[0].geometry.location.lat;
+      const long = data.results[0].geometry.location.lng;
+      return axios({
+        method: 'GET',
+        url: `https://api.opencagedata.com/geocode/v1/json?q=${lat}+${long}&key=fff0c9fd594a41aa9abeb0a5233ceba9`
+      })
+      .then(({ data }) => {
+        const gold = Math.floor(Math.random() * 1000);
+        console.log(data.results[0].components);
+        const location = data.results[0].components;
+        db.insertTreasure(gold, long, lat, `${location.house_number} ${location.road}`, location.city, location.state, location.postcode, 7, (err, treasure) => {
+          if (err) {
+            console.log(err);
+            res.status(500).send('COULD NOT INSERT TREASURE');
+          } else {
+            res.status(200).send(treasure);
+          }
+        })
+      })
+    })
+    .catch((err) => {
+      console.log(err, 'DID NOT RETRIEVE LOCATIONS');
+      res.status(500).send('NO LOCATIONS');
+    })
+});
+
 
 // Able to set port and still work //
 const port = process.env.PORT || 3001;
