@@ -1,9 +1,9 @@
 const axios = require('axios');
 
 test('health endpoint', (done) => {
-  axios({
-    method: 'GET',
-    url: '/',
+  return axios({
+    method: 'POST',
+    url: '/api/server/treasure',
   })
     .then((success) => {
       expect(success).toBe('UP!');
