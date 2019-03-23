@@ -128,7 +128,6 @@ app.post('/api/server/treasure', (req, res) => {
     url: `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${randomNolaLat},${randomNolaLong}&rankby=distance&key=${process.env.G_PLACES_API}`,
   })
     .then(({ data }) => {
-      console.log(data.results[0], '####################');
       const lat = data.results[0].geometry.location.lat;
       const long = data.results[0].geometry.location.lng;
       return axios({
@@ -143,7 +142,6 @@ app.post('/api/server/treasure', (req, res) => {
             console.log(err);
             res.status(500).send('COULD NOT INSERT TREASURE');
           } else {
-            console.log(treasure, '=============================');
             axios({
               method: 'GET',
               url: `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${treasure.location_data.latitude},${treasure.location_data.longitude}&rankby=distance&key=${process.env.G_PLACES_API}`,
