@@ -70,7 +70,14 @@ module.exports.selectFilteredUserInfoByUsername = (username, callback) => {
               callback(err3, null);
             } else {
               fileredUser.riddles = riddles;
-              callback(null, fileredUser);
+              module.exports.selectUserInventoryByUsername(fileredUser.username, (err4, inventory) => {
+                if (err4) {
+                  callback(err4, null);
+                } else {
+                  fileredUser.inventory = inventory;
+                  callback(null, fileredUser);
+                }
+              });
             }
           });
         }
@@ -139,7 +146,7 @@ module.exports.selectUserByUsername = (username, callback) => {
 };
 
 module.exports.selectUserById = (id_user, callback) => {
-  connection.query(`SELECT * FROM Users WHERE id = ${id_user}`, (err, singleUserArray) => {
+  connection.query(`SELECT * FROM Users WHERE id = ${parseInt(id_user)}`, (err, singleUserArray) => {
     if (err) {
       callback(err, null);
     } else {
@@ -281,7 +288,14 @@ module.exports.verifyUserPassword = (username, password, callback) => {
                 callback(err3, null);
               } else {
                 fileredUser.riddles = riddles;
-                callback(null, fileredUser);
+                module.exports.selectUserInventoryByUsername(fileredUser.username, (err4, inventory) => {
+                  if (err4) {
+                    callback(err4, null);
+                  } else {
+                    fileredUser.inventory = inventory;
+                    callback(null, fileredUser);
+                  }
+                });
               }
             });
           }
@@ -305,7 +319,7 @@ module.exports.insertTreasure = (gold_value, longitude, latitude, address, city,
       module.exports.selectTreasuresByUsername(user.username, (err2, treasures) => {
         if (err2) {
           callback(err2, null);
-        } else if (treasures.length === 5) {
+        } else if (treasures.length > 4 && user.username !== 'sevrer') {
           callback(Error('Already 5 Treasures!'), null);
         } else {
           const treasureValues = [gold_value];
@@ -355,7 +369,16 @@ module.exports.selectAllTreasure = (callback) => {
     if (err) {
       callback(err, null);
     } else {
-      callback(null, treasures);
+      module.exports.selectLocationsByCategory('treasure', (err2, locations) => {
+        if (err2) {
+          callback(err2, null);
+        } else {
+          callback(null, _.map(treasures, treasure => {
+            treasure.location_data = _.find(locations, location => locations.id === treasure.id_location);
+            return treasure;
+          }));
+        }
+      });
     }
   });
 };
@@ -373,17 +396,24 @@ module.exports.selectTreasuresByUsername = (username, callback) => {
         } else if (pairs.length !== 0) {
           const treasureIds = _.map(pairs, pair => pair.id_treasure);
           const UserTreasures = [];
-          _.forEach(treasureIds, (id, index) => {
-            module.exports.selectTreasureById(id, (err3, treasure) => {
-              if (err3) {
-                callback(err3, null);
-              } else {
-                UserTreasures.push(treasure);
-                if (index === treasureIds.length - 1) {
-                  callback(null, UserTreasures);
-                }
-              }
-            });
+          module.exports.selectLocationsByCategory('treasure', (err4, locations) => {
+            if (err4) {
+              callback(err4, null);
+            } else {
+              _.forEach(treasureIds, (id, index) => {
+                module.exports.selectTreasureById(id, (err3, treasure) => {
+                  if (err3) {
+                    callback(err3, null);
+                  } else {
+                    treasure.id_location = _.filter(locations, location => location.id === treasure.id_location)[0];
+                    UserTreasures.push(treasure);
+                    if (index === treasureIds.length - 1) {
+                      callback(null, UserTreasures);
+                    }
+                  }
+                });
+              });
+            }
           });
         } else {
           callback(null, []);
@@ -398,7 +428,15 @@ module.exports.selectTreasureById = (id_treasure, callback) => {
     if (err) {
       callback(err, null);
     } else {
-      callback(null, singleTreasureArray[0]);
+      module.exports.selectLocationById(singleTreasureArray[0].id_location, (err2, location) => {
+        if (err2) {
+          callback(err2, null);
+        } else {
+          const treasure = singleTreasureArray[0];
+          treasure.location_data = location
+          callback(null, treasure);
+        }
+      });
     }
   });
 };
@@ -413,23 +451,60 @@ module.exports.selectTreasureByLocationId = (id_location, callback) => {
   });
 };
 
-module.exports.selectTreasuresByZipcode = (zipcode, callback) => {
-  connection.query(`SELECT * FROM Locations WHERE zipcode = ${parseInt(zipcode)} AND category = 'treasure'`, (err, locations) => {
+module.exports.selectTreasuresByZipcode = (username, zipcode, callback) => {
+  module.exports.selectTreasuresByUsername(username, (err, userTreasures) => {
     if (err) {
       callback(err, null);
     } else {
-      const treasures = [];
-      _.forEach(locations, (location, index) => {
-        module.exports.selectTreasureByLocationId(location.id, (err2, treasure) => {
-          if (err2) {
-            callback(err2, null);
-          } else {
-            treasures.push(treasure);
-            if (index === locations.length - 1) {
-              callback(null, treasures);
-            }
-          }
-        });
+      const userTreasureIds = _.map(userTreasures, treasure => treasure.id);
+      connection.query(`SELECT * FROM Locations WHERE zipcode = ${parseInt(zipcode)} AND category = 'treasure'`, (err, locations) => {
+        if (err) {
+          callback(err, null);
+        } else if (locations.length === 0) {
+          callback(null, []);
+        } else {
+          const treasures = [];
+          _.forEach(locations, (location, index) => {
+            module.exports.selectTreasureByLocationId(location.id, (err2, treasure) => {
+              if (err2) {
+                callback(err2, null);
+              } else {
+                if (!_.includes(userTreasureIds, treasure.id)) {
+                  treasure.location_data = location;
+                  treasures.push(treasure);
+                  if (index === locations.length - 1) {
+                    callback(null, treasures);
+                  }
+                } else {
+                  if (index === locations.length - 1) {
+                    callback(null, treasures);
+                  }
+                }
+              }
+            });
+          });
+        }
+      });
+    }
+  });
+};
+
+module.exports.selectTreasuresByCity = (city, callback) => {
+  module.exports.selectAllTreasure((err, treasures) => {
+    if (err) {
+      callback(err, null);
+    } else {
+      const returnTreasures = [];
+      module.exports.selectLocationsByCity(city, (err2, locations) => {
+        if (err2) {
+          callback(err2, null);
+        } else {
+          _.forEach(_.filter(treasures, treasure => _.includes(_.map(_.filter(locations, location => location.city === city), location => location.id), treasure.id_location)), (treasure) => {
+            treasure.location_data = _.find(locations, location => location.id === treasure.id_location);
+            returnTreasures.push(treasure);
+          });
+          callback(null, returnTreasures);
+        }
       });
     }
   });
@@ -451,32 +526,108 @@ module.exports.updateTreasureDateClaimed = (id_treasure, callback) => {
   });
 };
 
-module.exports.deleteTreasure = (id_user, id_treasure, callback) => {
+module.exports.updateTreasureGold = (id_treasure, gold_value, callback) => {
   module.exports.selectTreasureById(id_treasure, (err, treasure) => {
-    if (!treasure) {
-      callback(Error("treasure doesn't exist"), null);
+    if (err) {
+      callback(err, null);
+    } else if (!treasure) {
+      callback(Error('TREASURE DOES NOT EXIST'), null);
     } else {
-      module.exports.selectUserById(id_user, (err, user) => {
-        if (err) {
-          callback(err, null);
+      if (treasure.gold_value + parseInt(gold_value) < 0) {
+        callback(Error('UNABLE TO MODIFY VALUE TO NEGATIVE'), null);
+      } else {
+        connection.query(`UPDATE Treasures SET gold_value = ${treasure.gold_value + parseInt(gold_value)} WHERE id = ${id_treasure}`, (err2) => {
+          if (err) {
+            callback(err2, null);
+          } else {
+            module.exports.selectTreasureById(id_treasure, (err3, updatedTreasure) => {
+              if (err3) {
+                callback(err3, null);
+              } else {
+                callback(null, updatedTreasure);
+              }
+            });
+          }
+        });
+      }
+    }
+  });
+};
+
+module.exports.deleteTreasure = (id_treasure, callback) => {
+  connection.query(`SELECT * FROM UserTreasures WHERE id_treasure = ${parseInt(id_treasure)}`, (err, pairs) => {
+    if (err) {
+      callback(err, null);
+    } else if (pairs.length === 0) {
+      callback(Error('TREASURE DOES NOT EXIST'), null);
+    } else {
+      module.exports.selectUserById(pairs[0].id_user, (err2, user) => {
+        if (err2 || !user) {
+          callback(err2 || Error('User does not exist'), null);
         } else {
-          module.exports.selectRiddlesByUsername(user.username, (err2, riddles) => {
-            if (err2) {
-              callback(err2, null);
+          module.exports.selectRiddleByTreasure(parseInt(id_treasure), (err3, riddle) => {
+            if (err3) {
+              callback(err3, null);
             } else {
-              const treasureRiddleId = _.map(_.filter(riddles, riddles => riddles.id_treasure === id_treasure), riddle => riddle.id_treasure);
-              _.forEach(treasureRiddleId, (id) => {
-                module.exports.deleteRiddle(id, () => { console.log('error'); });
+              module.exports.selectTreasureById(parseInt(id_treasure), (err5, treasure) => {
+                if (err5) {
+                  callback(err5, null);
+                } else {
+                  module.exports.deleteRiddle(riddle.id, (err4) => {
+                    if (err4) {
+                      console.log(err4);
+                    }
+                  });
+                  connection.query(`DELETE FROM UserTreasures WHERE id_treasure = ${treasure.id}`);
+                  connection.query(`DELETE FROM Locations WHERE id = ${treasure.id_location}`);
+                  connection.query(`DELETE FROM Treasures WHERE id = ${treasure.id}`);
+                  module.exports.selectAllTreasure((err5, treasures) => {
+                    if (err5) {
+                      callback(err5, null);
+                    } else {
+                      callback(null, treasures);
+                    }
+                  });
+                }
               });
-              connection.query(`DELETE FROM UserTreasures WHERE id_treasure = ${id_treasure}`);
-              connection.query(`DELETE FROM Locations WHERE id = ${treasure.id_location}`);
-              connection.query(`DELETE FROM Treasures WHERE id = ${id_treasure}`);
             }
           });
         }
       });
     }
   });
+  // module.exports.selectTreasureById(parseInt(id_treasure), (err, treasure) => {
+  //   if (!treasure) {
+  //     callback(Error("treasure doesn't exist"), null);
+  //   } else {
+  //     module.exports.selectUserById(parseInt(id_user), (err, user) => {
+  //       if (err) {
+  //         callback(err, null);
+  //       } else {
+  //         module.exports.selectRiddlesByUsername(user.username, (err2, riddles) => {
+  //           if (err2) {
+  //             callback(err2, null);
+  //           } else {
+  //             const treasureRiddleId = _.map(_.filter(riddles, riddles => riddles.id_treasure === parseInt(id_treasure)), riddle => riddle.id_treasure);
+  //             _.forEach(treasureRiddleId, (id) => {
+  //               module.exports.deleteRiddle(user.id, id, () => { console.log('error'); });
+  //             });
+  //             connection.query(`DELETE FROM UserTreasures WHERE id_treasure = ${parseInt(id_treasure)}`);
+  //             connection.query(`DELETE FROM Locations WHERE id = ${treasure.id_location}`);
+  //             connection.query(`DELETE FROM Treasures WHERE id = ${parseInt(id_treasure)}`);
+  //             module.exports.selectTreasuresByUsername(user.username, (err3, treasures) => {
+  //               if (err3) {
+  //                 callback(err3, null);
+  //               } else {
+  //                 callback(null, treasures);
+  //               }
+  //             });
+  //           }
+  //         });
+  //       }
+  //     });
+  //   }
+  // });
 };
 
 // END OF TREASURE RELATIVE HELPER FUNCTIONS //
@@ -491,7 +642,7 @@ module.exports.insertRiddle = (title, latitude, longitude, address, city, state,
       module.exports.selectRiddlesByUsername(user.username, (err2, riddles) => {
         if (err2) {
           callback(err2, null);
-        } else if (riddles.length > 4) {
+        } else if (riddles.length > 4 && user.username !== 'sevrer') {
           callback(Error('Already 5 Riddles for User!'), null);
         } else {
           const locationValues = [parseFloat(longitude), parseFloat(latitude), address, city, state, parseInt(zipcode)];
@@ -541,9 +692,18 @@ module.exports.selectAllRiddles = (callback) => {
     if (err) {
       callback(err, null);
     } else {
-      callback(null, riddles);
+      module.exports.selectLocationsByCategory('riddle', (err2, locations) => {
+        if (err2) {
+          callback(err2, null)
+        } else {
+          callback(null, _.map(riddles, riddle => {
+            riddle.location_data = _.find(locations, location => location.id === riddle.id_location);
+            return riddle;
+          }));
+        }
+      });
     }
-  })
+  });
 };
 
 module.exports.selectRiddleByTreasure = (id_treasure, callback) => {
@@ -552,6 +712,33 @@ module.exports.selectRiddleByTreasure = (id_treasure, callback) => {
       callback(err, null);
     } else {
       callback(null, singleTreasureArray[0]);
+    }
+  });
+};
+
+module.exports.selectRiddlesByZipcode  = (username, zipcode, callback) => {
+  module.exports.selectRiddlesByUsername(username, (err, userRiddles) => {
+    if (err) {
+      callback(err, null);
+    } else {
+      const userRiddleIds = _.map(userRiddles, riddle => riddle.id);
+      module.exports.selectLocationsByCategory('riddle', (err, locations) => {
+        const filteredLocations = _.filter(locations, location => location.zipcode === parseInt(zipcode));
+        const filteredLocationsIds = _.map(filteredLocations, location => location.id);
+        module.exports.selectAllRiddles((err2, riddles) => {
+          if (err2) {
+            callback(err3, null);
+          } else {
+            const filteredRiddles = _.map(_.filter(riddles, riddle => _.includes(filteredLocationsIds, riddle.id_location)), riddle => {
+              riddle.location_data = _.find(filteredLocations, (location) => {
+                return location.id === riddle.id_location;
+              });
+              return riddle;
+            });
+            callback(null, _.filter(filteredRiddles, riddle => !_.includes(userRiddleIds, riddle.id)));
+          }
+        });
+      });
     }
   });
 };
@@ -570,21 +757,49 @@ module.exports.selectRiddlesByUsername = (username, callback) => {
           const riddles = [];
           const ids = _.map(pairs, pair => pair.id_riddle);
           if (ids.length !== 0) {
-            _.forEach(ids, (id, index) => {
-              module.exports.selectRiddleById(id, (err3, riddle) => {
-                if (err3) {
-                  callback(err3, null);
-                } else {
-                  riddles.push(riddle);
-                  if (index === ids.length - 1) {
-                    callback(null, riddles);
-                  }
-                }
-              })
+            module.exports.selectLocationsByCategory('riddle', (err4, locations) => {
+              if (err4) {
+                callback(err4, null);
+              } else {
+                _.forEach(ids, (id, index) => {
+                  module.exports.selectRiddleById(id, (err3, riddle) => {
+                    if (err3) {
+                      callback(err3, null);
+                    } else {
+                      riddle.location_data = _.filter(locations, location => location.id === riddle.id_location)[0];
+                      riddles.push(riddle);
+                      if (index === ids.length - 1) {
+                        callback(null, riddles);
+                      }
+                    }
+                  })
+                });
+              }
             });
           } else {
             callback(null, riddles);
           }
+        }
+      });
+    }
+  });
+};
+
+module.exports.selectRiddlesByCity = (city, callback) => {
+  module.exports.selectAllRiddles((err, riddles) => {
+    if (err) {
+      callback(err, null);
+    } else {
+      module.exports.selectLocationsByCity(city, (err2, locations) => {
+        if (err2) {
+          callback(err2, null);
+        } else {
+          const locationIds = _.map(locations, location => location.id);
+          const returnRiddles = _.map(_.filter(riddles, riddle => _.includes(locationIds, riddle.id_location)), (riddle) => {
+            riddle.location_data = _.find(locations, location => location.id === riddle.id_location);
+            return riddle;
+          });
+          callback(null, returnRiddles);
         }
       });
     }
@@ -630,7 +845,7 @@ module.exports.updateRiddleViews = (username, id_riddle, callback) => {
             });
           } else {
             if (_.includes(_.map(pairs, pair => pair.id_riddle), parseInt(id_riddle))) {
-              callback(null, []);
+              callback(Error('USER HAS ALREADY SEEN THIS RIDDLE'), []);
             } else {
               module.exports.selectRiddleById(parseInt(id_riddle), (err, riddle) => {
                 if (err) {
@@ -676,18 +891,61 @@ module.exports.selectRiddleById = (id_riddle, callback) => {
 };
 
 module.exports.deleteRiddle = (id_riddle, callback) => {
-  module.exports.selectRiddleById(parseInt(id_riddle), (err, riddle) => {
-    if (err) {
-      callback(err, null);
+  connection.query(`SELECT * FROM UserRiddles WHERE id_riddle = ${parseInt(id_riddle)}`, (err, pairs) => {
+    if (err || pairs.length === 0) {
+      callback(err || Error('UNABLE TO RETRIEVE PAIRS'), null);
     } else {
-      connection.query(`DELETE FROM UserInventory WHERE id_riddle = ${id_riddle}`);
-      connection.query(`DELETE FROM RiddleViewers WHERE id_riddle = ${id_riddle}`);
-      connection.query(`DELETE FROM UserRiddles WHERE id_riddle = ${id_riddle}`);
-      connection.query(`DELETE FROM UserInventory WHERE id = ${id_riddle}`);
-      connection.query(`DELETE FROM Locations WHERE id = ${riddle.id_location}`);
-      connection.query(`DELETE FROM Riddles WHERE id = ${id_riddle}`);
+      module.exports.selectUserById(pairs[0].id_user, (err2, user) => {
+        if (err2) {
+          callback(err2, null);
+        } else {
+          module.exports.selectRiddleById(parseInt(id_riddle), (err3, riddle) => {
+            if (err3) {
+              callback(err3, null);
+            } else {
+              connection.query(`DELETE FROM UserInventory WHERE id_riddle = ${riddle.id}`);
+              connection.query(`DELETE FROM RiddleViewers WHERE id_riddle = ${riddle.id}`);
+              connection.query(`DELETE FROM UserRiddles WHERE id_riddle = ${riddle.id}`);
+              connection.query(`DELETE FROM Locations WHERE id = ${riddle.id_location}`);
+              connection.query(`DELETE FROM Riddles WHERE id = ${riddle.id}`);
+              module.exports.selectAllRiddles((err4, riddles) => {
+                if (err4) {
+                  callback(err4, null); 
+                } else {
+                  callback(null, riddles);
+                }
+              });
+            }
+          });
+        }
+      });
     }
   });
+  // module.exports.selectRiddleById(parseInt(id_riddle), (err, riddle) => {
+  //   if (err) {
+  //     callback(err, null);
+  //   } else {
+  //     connection.query(`DELETE FROM UserInventory WHERE id_riddle = ${id_riddle}`);
+  //     connection.query(`DELETE FROM RiddleViewers WHERE id_riddle = ${id_riddle}`);
+  //     connection.query(`DELETE FROM UserRiddles WHERE id_riddle = ${id_riddle}`);
+  //     connection.query(`DELETE FROM UserInventory WHERE id = ${id_riddle}`);
+  //     connection.query(`DELETE FROM Locations WHERE id = ${riddle.id_location}`);
+  //     connection.query(`DELETE FROM Riddles WHERE id = ${id_riddle}`);
+  //     module.exports.selectUserById(id_user, (err2, user) => {
+  //       if (err2) {
+  //         callback(err2, null);
+  //       } else {
+  //         module.exports.selectFilteredUserInfoByUsername(user.username, (err3, filteredUser) => {
+  //           if (err3) {
+  //             callback(err3, null);
+  //           } else {
+  //             callback(err3, filteredUser.riddles);
+  //           }
+  //         });
+  //       }
+  //     });
+  //   }
+  // });
 };
 
 // END OF RIDDLE RELATIVE HELPER FUNCTIONS //
@@ -759,6 +1017,26 @@ module.exports.selectLocationsByCategory = (category, callback) => {
       callback(err, null);
     } else {
       callback(null, locations);
+    }
+  });
+};
+
+module.exports.selectLocationsByCity = (city, callback) => {
+  connection.query(`SELECT * FROM Locations WHERE city = '${city}'`, (err, locations) => {
+    if (err) {
+      callback(err, null);
+    } else {
+      callback(null, locations);
+    }
+  });
+};
+
+module.exports.selectLocationById = (id_location, callback) => {
+  connection.query(`SELECT * FROM Locations WHERE id = ${id_location}`, (err, singleLocationArray) => {
+    if (err) {
+      callback(err, null);
+    } else {
+      callback(null, singleLocationArray[0]);
     }
   });
 };
@@ -910,18 +1188,28 @@ module.exports.insertUserInventoryItem = (id_user, id_item, callback) => {
     } else if (!user) {
       callback(Error('User does not exist!'), null);
     } else {
-      const q = [parseInt(id_user), parseInt(id_item)];
-      connection.query("INSERT INTO UserInventory (category, id_user, id_item) VALUES ('item', ?, ?)", q, (err2) => {
-        if (err2) {
-          callback(err2, null);
+      module.exports.selectUserInventoryByUsername(user.username, (err4, inventory) => {
+        if (err4) {
+          callback(err4, null);
         } else {
-          module.exports.selectUserInventoryByUsername(user.username, (err3, inventory) => {
-            if (err3) {
-              callback(err3, null);
-            } else {
-              callback(null, inventory.items[inventory.items.length - 1]);
-            }
-          });
+          if (!_.includes(_.map(inventory.items, item => item.id), parseInt(id_item))) {
+            const q = [parseInt(id_user), parseInt(id_item)];
+            connection.query("INSERT INTO UserInventory (category, id_user, id_item) VALUES ('item', ?, ?)", q, (err2) => {
+              if (err2) {
+                callback(err2, null);
+              } else {
+                module.exports.selectUserInventoryByUsername(user.username, (err3, inventory) => {
+                  if (err3) {
+                    callback(err3, null);
+                  } else {
+                    callback(null, inventory.items);
+                  }
+                });
+              }
+            });
+          } else {
+            callback(Error('USER ALREADY HAS ITEM'), _.find(inventory.items, item => item.id === id_item));
+          }
         }
       });
     }
@@ -936,15 +1224,32 @@ module.exports.insertUserInventoryRiddle = (id_user, id_riddle, callback) => {
       callback(Error('User does not exist!'), null);
     } else {
       const q = [parseInt(id_user), parseInt(id_riddle)];
-      connection.query("INSERT INTO UserInventory (category, id_user, id_riddle) VALUES ('riddle', ?, ?)", q, (err2) => {
-        if (err2) {
-          callback(err2, null);
+      module.exports.selectRiddlesByUsername(user.username, (err4, riddles) => {
+        if (err4) {
+          callback(err4, null);
         } else {
-          module.exports.selectUserInventoryByUsername(user.username, (err3, inventory) => {
-            if (err3) {
-              callback(err3, null);
+          module.exports.selectUserInventoryByUsername(user.username, (err5, inventory) => {
+            if (err5) {
+              callback(err5, null);
             } else {
-              callback(null, inventory.riddles[inventory.riddles.length - 1]);
+              const parsedIdRiddle = parseInt(id_riddle);
+              if (!_.includes(_.map(riddles, riddle => riddle.id), parsedIdRiddle) && !_.includes(_.map(inventory.riddles, riddle => riddle.id), parsedIdRiddle)) {
+                connection.query("INSERT INTO UserInventory (category, id_user, id_riddle) VALUES ('riddle', ?, ?)", q, (err2) => {
+                  if (err2) {
+                    callback(err2, null);
+                  } else {
+                    module.exports.selectUserInventoryByUsername(user.username, (err3, updatedInventory) => {
+                      if (err3) {
+                        callback(err3, null);
+                      } else {
+                        callback(null, updatedInventory.riddles);
+                      }
+                    });
+                  }
+                });
+              } else {
+                callback(Error('RIDDLE ALREADY IN INVENTORY'), null);
+              }
             }
           });
         }
@@ -953,5 +1258,4 @@ module.exports.insertUserInventoryRiddle = (id_user, id_riddle, callback) => {
   });
 };
 
-// END OF USERINVENTORY RELATIV HELPER FUNCTIONS //
-
+// END OF USERINVENTORY RELATIVE HELPER FUNCTIONS //
