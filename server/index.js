@@ -89,34 +89,39 @@ app.post('/api/server/treasure', (req, res) => {
                 const threeToTreasure = helpers.getDirectionAndDistance(riddleLocationThree, [treasure.location_data.longitude, treasure.location_data.latitude]);
 
                 // TODO: Make first line of directions include a street name
-                directions = `INSERT STREET NAME HERE\n`;
-
-                const firstEnding = helpers.getRandomFromArray(endersForFirstTwoRhymes);
-                let directionsOne = `${Math.ceil(oneToTwo.paces)} paces ${oneToTwo.heading} of ${landmarkOne.name} ${firstEnding}\n`;
-                directionsOne += `the ${landmarkTwo.name} ${helpers.getRandomFromArray(firstTwoRhymesWordsLists[firstEnding])}\n`;
-                directions += directionsOne;
-
-                const secondEnding = helpers.getRandomFromArray(endersForFirstTwoRhymes);
-                let directionsTwo = `${Math.ceil(twoToThree.paces)} paces ${twoToThree.heading} of ${secondEnding}\n`;
-                directionsTwo += `the ${landmarkThree.name} ${helpers.getRandomFromArray(firstTwoRhymesWordsLists[secondEnding])}\n`;
-                directions += directionsTwo;
-
-                let directionsThree = `${Math.ceil(threeToTreasure.paces)} paces ${threeToTreasure.heading} must you measure\n`;
-                directionsThree += `in order to find ${helpers.getRandomFromArray(rhymesForMeasure)}.`;
-                directions += directionsThree;
-                // directions = `From ${landmarkOne.name} walk ${Math.round(oneToTwo.paces)} paces ${oneToTwo.heading}.\n`;
-                // directions += `From ${landmarkTwo.name} walk ${Math.round(twoToThree.paces)} paces ${twoToThree.heading}.\n`;
-                // directions += `From ${landmarkThree.name} walk ${Math.round(threeToTreasure.paces)} paces ${threeToTreasure.heading}.`;
-
-
-                db.insertRiddle('hey', 0, 0, null, null, null, 0, directions, treasure.id, 1, (err, riddle) => {
-                  if (err) {
-                    console.log(err);
-                    res.status(500).send('RIDDLE COULD NOT BE INSERTED');
-                  } else {
-                    res.status(200).send('TREASURE AND RIDDLE SUCCESSFULLY GENERATED AND STORED');
-                  }
-                });
+                axios({
+                  method: 'GET',
+                  url: `https://api.opencagedata.com/geocode/v1/json?q=${riddleLocationThree[1]}+${riddleLocationThree[0]}&key=${process.env.OPENCAGE_API}`
+                })
+                  .then(({ data }) => {
+                    directions = `Along the ${data.results[0].components.road} River\n`;
+    
+                    const firstEnding = helpers.getRandomFromArray(endersForFirstTwoRhymes);
+                    let directionsOne = `${Math.ceil(oneToTwo.paces)} paces ${oneToTwo.heading} of ${landmarkOne.name} ${firstEnding}\n`;
+                    directionsOne += `the ${landmarkTwo.name} ${helpers.getRandomFromArray(firstTwoRhymesWordsLists[firstEnding])}\n`;
+                    directions += directionsOne;
+    
+                    const secondEnding = helpers.getRandomFromArray(endersForFirstTwoRhymes);
+                    let directionsTwo = `${Math.ceil(twoToThree.paces)} paces ${twoToThree.heading} of ${secondEnding}\n`;
+                    directionsTwo += `the ${landmarkThree.name} ${helpers.getRandomFromArray(firstTwoRhymesWordsLists[secondEnding])}\n`;
+                    directions += directionsTwo;
+    
+                    let directionsThree = `${Math.ceil(threeToTreasure.paces)} paces ${threeToTreasure.heading} must you measure\n`;
+                    directionsThree += `in order to find ${helpers.getRandomFromArray(rhymesForMeasure)}.`;
+                    directions += directionsThree;
+                    // directions = `From ${landmarkOne.name} walk ${Math.round(oneToTwo.paces)} paces ${oneToTwo.heading}.\n`;
+                    // directions += `From ${landmarkTwo.name} walk ${Math.round(twoToThree.paces)} paces ${twoToThree.heading}.\n`;
+                    // directions += `From ${landmarkThree.name} walk ${Math.round(threeToTreasure.paces)} paces ${threeToTreasure.heading}.`;
+    
+                    db.insertRiddle('hey', 0, 0, null, null, null, 0, directions, treasure.id, 1, (err, riddle) => {
+                      if (err) {
+                        console.log(err);
+                        res.status(500).send('RIDDLE COULD NOT BE INSERTED');
+                      } else {
+                        res.status(200).send('TREASURE AND RIDDLE SUCCESSFULLY GENERATED AND STORED');
+                      }
+                    });
+                  })
 
                 // return axios({
                 //   method: 'GET',
