@@ -88,7 +88,8 @@ app.post('/api/server/treasure', (req, res) => {
                 const twoToThree = helpers.getDirectionAndDistance(riddleLocationTwo, riddleLocationThree);
                 const threeToTreasure = helpers.getDirectionAndDistance(riddleLocationThree, [treasure.location_data.longitude, treasure.location_data.latitude]);
 
-                directions = ``;
+                // TODO: Make first line of directions include a street name
+                directions = `INSERT STREET NAME HERE\n`;
 
                 const firstEnding = helpers.getRandomFromArray(endersForFirstTwoRhymes);
                 let directionsOne = `${Math.ceil(oneToTwo.paces)} paces ${oneToTwo.heading} of ${landmarkOne.name} ${firstEnding}\n`;
@@ -116,7 +117,7 @@ app.post('/api/server/treasure', (req, res) => {
                     res.status(200).send('TREASURE AND RIDDLE SUCCESSFULLY GENERATED AND STORED');
                   }
                 });
-                
+
                 // return axios({
                 //   method: 'GET',
                 //   url: `https://api.tomtom.com/routing/1/calculateRoute/${riddleLocationOne.lat},${riddleLocationOne.lng}:${riddleLocationTwo.lat},${riddleLocationTwo.lng}/json?maxAlternatives=0&instructionsType=text&avoid=unpavedRoads&sectionType=pedestrian&travelMode=pedestrian&key=${process.env.TOMTOM_API}`
