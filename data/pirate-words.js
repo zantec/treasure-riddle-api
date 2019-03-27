@@ -13,7 +13,7 @@ module.exports.rhymesForSeek = [
 // a <location2> ${insertFromBelow}
 module.exports.rhymesForBe = [
   'there you will see',
-  'from which to read the next clue from me',
+  'to follow the next clue from me',
   'at least to some degree',
   'where you can rest and take a knee',
   'perfect to read the next rhyme for free',
