@@ -10,7 +10,7 @@ const db = require('../database/index.js');
 const helpers = require('./server-helpers.js');
 require('dotenv').config();
 require('../TestFunctions');
-const {rhymesForBe, rhymesForMeasure, rhymesForSeek, captainNames} = require('../data/pirate-words.js');
+const {endersForFirstTwoRhymes, firstTwoRhymesWordsLists, rhymesForMeasure, captainNames} = require('../data/pirate-words.js');
 
 // const helper = require('../helpers/apiHelpers');
 
@@ -90,12 +90,14 @@ app.post('/api/server/treasure', (req, res) => {
 
                 directions = ``;
 
-                let directionsOne = `${Math.ceil(oneToTwo.paces)} paces ${oneToTwo.heading} of ${landmarkOne.name} you will seek\n`;
-                directionsOne += `the ${landmarkTwo.name} ${helpers.getRandomFromArray(rhymesForSeek)}\n`;
+                const firstEnding = helpers.getRandomFromArray(endersForFirstTwoRhymes);
+                let directionsOne = `${Math.ceil(oneToTwo.paces)} paces ${oneToTwo.heading} of ${landmarkOne.name} ${firstEnding}\n`;
+                directionsOne += `the ${landmarkTwo.name} ${helpers.getRandomFromArray(firstTwoRhymesWordsLists[firstEnding])}\n`;
                 directions += directionsOne;
 
-                let directionsTwo = `${Math.ceil(twoToThree.paces)} paces ${twoToThree.heading} of here there will be\n`;
-                directionsTwo += `the ${landmarkThree.name} ${helpers.getRandomFromArray(rhymesForBe)}\n`;
+                const secondEnding = helpers.getRandomFromArray(endersForFirstTwoRhymes);
+                let directionsTwo = `${Math.ceil(twoToThree.paces)} paces ${twoToThree.heading} of ${secondEnding}\n`;
+                directionsTwo += `the ${landmarkThree.name} ${helpers.getRandomFromArray(firstTwoRhymesWordsLists[secondEnding])}\n`;
                 directions += directionsTwo;
 
                 let directionsThree = `${Math.ceil(threeToTreasure.paces)} paces ${threeToTreasure.heading} must you measure\n`;
@@ -106,7 +108,15 @@ app.post('/api/server/treasure', (req, res) => {
                 // directions += `From ${landmarkThree.name} walk ${Math.round(threeToTreasure.paces)} paces ${threeToTreasure.heading}.`;
 
 
-                res.status(200).send(directions);
+                db.insertRiddle('hey', 0, 0, null, null, null, 0, directions, treasure.id, 1, (err, riddle) => {
+                  if (err) {
+                    console.log(err);
+                    res.status(500).send('RIDDLE COULD NOT BE INSERTED');
+                  } else {
+                    res.status(200).send('TREASURE AND RIDDLE SUCCESSFULLY GENERATED AND STORED');
+                  }
+                });
+                
                 // return axios({
                 //   method: 'GET',
                 //   url: `https://api.tomtom.com/routing/1/calculateRoute/${riddleLocationOne.lat},${riddleLocationOne.lng}:${riddleLocationTwo.lat},${riddleLocationTwo.lng}/json?maxAlternatives=0&instructionsType=text&avoid=unpavedRoads&sectionType=pedestrian&travelMode=pedestrian&key=${process.env.TOMTOM_API}`
