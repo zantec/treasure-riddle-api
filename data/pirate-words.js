@@ -76,5 +76,8 @@ module.exports.crewNames = [
   'The Shortsail Pirates',
   'The Strong Wind Pirates',
   'The Buccaneers',
-  ''
+  'The Lucky Four',
+  'The Undaunted',
+  'The Samwell Pirates',
+  'The '
 ];
