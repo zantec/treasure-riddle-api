@@ -28,7 +28,7 @@ module.exports.firstTwoRhymesWordsLists = {
 // in order to find ${insertFromBelow}
 module.exports.rhymesForMeasure = [
   'a lofty sum of treasure',
-  'the captain\'s hidden pleasure',
+  'a pirate\'s hidden pleasure',
   'the gold embedded feathers',
   'riches that last forever',
 ];
@@ -47,38 +47,57 @@ module.exports.femaleWords = [
 ];
 
 module.exports.captainNames = [
-  'Captain Morgan',
-  'Captain Navi',
-  'Captain Prince',
-  'Captain Creed',
-  'Captain Blackbeard',
-  'Captain Whitebeard',
-  'Captain Hoogstandjes',
-  'Captain Brownbeard',
-  'Captain Tempest',
-  'Captain Digby',
-  'Captain Jinx',
-  'Captain Fraud',
-  'Captain Stone',
-  'Captain Stanton',
-  'Captain Tidus',
+  'Captain Morgan\'s',
+  'Captain Navi\'s',
+  'Captain Prince\'s',
+  'Captain Creed\'s',
+  'Captain Blackbeard\'s',
+  'Captain Whitebeard\'s',
+  'Captain Hoogstandjes\'',
+  'Captain Brownbeard\'s',
+  'Captain Tempest\'s',
+  'Captain Digby\'s',
+  'Captain Jinx\'s',
+  'Captain Fraud\'s',
+  'Captain Stone\'s',
+  'Captain Stanton\'s',
+  'Captain Tidus\'',
 ];
 
 module.exports.crewNames = [
-  'The Nice Guy Pirates',
-  'The Floaters',
-  'The Sea Wolves',
-  'The Goon Platoon',
-  'The Blue Shirt Bandits',
-  'The Son\'s of the Sea',
-  'The Shadow Pillagers',
-  'The Blackbeard Pirates',
-  'The Shortsail Pirates',
-  'The Strong Wind Pirates',
-  'The Buccaneers',
-  'The Lucky Four',
-  'The Undaunted',
-  'The Samwell Pirates',
+  'The Nice Guy Pirates\'',
+  'The Floaters\'',
+  'The Sea Wolves\'',
+  'The Goon Platoon\'',
+  'The Blue Shirt Bandits\'',
+  'The Son\'s of the Sea\'s',
+  'The Shadow Pillagers\'',
+  'The Blackbeard Pirates\'',
+  'The Shortsail Pirates\'',
+  'The Strong Wind Pirates\'',
+  'The Buccaneers\'',
+  'The Lucky Four\'s',
+  'The Undaunted\'s',
+  'The Samwell Pirates\'',
+];
+
+module.exports.titleNames = {
+  crews: module.exports.crewNames,
+  captains: module.exports.captainNames,
+};
+
+module.exports.titleEndings = [
+  'Hidden Booty',
+  'Lost Tresure',
+  'Last Stand',
+  'Forgotten Ship',
+  'Riches',
+  'Stashed Jewels',
+  'Final Cache',
+  'Rest',
+  'Stash',
+  'Hunt',
+  'Grave',
 ];
 
 module.exports.waterBodies = [

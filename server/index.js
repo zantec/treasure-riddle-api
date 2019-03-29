@@ -10,7 +10,7 @@ const db = require('../database/index.js');
 const helpers = require('./server-helpers.js');
 require('dotenv').config();
 require('../TestFunctions');
-const {endersForFirstTwoRhymes, firstTwoRhymesWordsLists, rhymesForMeasure, captainNames, waterBodies} = require('../data/pirate-words.js');
+const {endersForFirstTwoRhymes, firstTwoRhymesWordsLists, rhymesForMeasure, titleNames, waterBodies, titleEndings} = require('../data/pirate-words.js');
 
 // const helper = require('../helpers/apiHelpers');
 
@@ -87,7 +87,7 @@ app.post('/api/user/riddle', (req, res) => {
               directions += directionsOne;
 
               const secondEnding = helpers.getRandomFromArray(endersForFirstTwoRhymes);
-              let directionsTwo = `${Math.ceil(twoToThree.paces)} paces ${twoToThree.heading} of ${secondEnding}\n`;
+              let directionsTwo = `${Math.ceil(twoToThree.paces)} paces ${twoToThree.heading} of here ${secondEnding}\n`;
               directionsTwo += `the ${landmarkThree.name} ${helpers.getRandomFromArray(firstTwoRhymesWordsLists[secondEnding])}\n`;
               directions += directionsTwo;
 
@@ -98,7 +98,11 @@ app.post('/api/user/riddle', (req, res) => {
               // directions += `From ${landmarkTwo.name} walk ${Math.round(twoToThree.paces)} paces ${twoToThree.heading}.\n`;
               // directions += `From ${landmarkThree.name} walk ${Math.round(threeToTreasure.paces)} paces ${threeToTreasure.heading}.`;
 
-              db.insertRiddle('hey', req.body.latitude, req.body.longitude, req.body.address, req.body.city, req.body.state, req.body.zipcode, directions, treasure.id, req.body.id_user, (err, riddle) => {
+              const riddleTitleName = helpers.getRandomFromArray(titleNames[helpers.getRandomFromArray(['captains', 'crews'])]);
+              const riddleTitleEnding = helpers.getRandomFromArray(titleEndings);
+              const title = `${riddleTitleName} ${riddleTitleEnding}`;
+
+              db.insertRiddle(title, req.body.latitude, req.body.longitude, req.body.address, req.body.city, req.body.state, req.body.zipcode, directions, treasure.id, req.body.id_user, (err, riddle) => {
                 if (err) {
                   console.log(err);
                   res.status(500).send('RIDDLE COULD NOT BE INSERTED');
@@ -224,7 +228,7 @@ app.post('/api/server/treasure', (req, res) => {
                     directions += directionsOne;
     
                     const secondEnding = helpers.getRandomFromArray(endersForFirstTwoRhymes);
-                    let directionsTwo = `${Math.ceil(twoToThree.paces)} paces ${twoToThree.heading} of ${secondEnding}\n`;
+                    let directionsTwo = `${Math.ceil(twoToThree.paces)} paces ${twoToThree.heading} of here ${secondEnding}\n`;
                     directionsTwo += `the ${landmarkThree.name} ${helpers.getRandomFromArray(firstTwoRhymesWordsLists[secondEnding])}\n`;
                     directions += directionsTwo;
     
@@ -234,8 +238,12 @@ app.post('/api/server/treasure', (req, res) => {
                     // directions = `From ${landmarkOne.name} walk ${Math.round(oneToTwo.paces)} paces ${oneToTwo.heading}.\n`;
                     // directions += `From ${landmarkTwo.name} walk ${Math.round(twoToThree.paces)} paces ${twoToThree.heading}.\n`;
                     // directions += `From ${landmarkThree.name} walk ${Math.round(threeToTreasure.paces)} paces ${threeToTreasure.heading}.`;
-    
-                    db.insertRiddle('hey', 0, 0, null, null, null, 0, directions, treasure.id, 1, (err, riddle) => {
+                    
+                    const riddleTitleName = helpers.getRandomFromArray(titleNames[helpers.getRandomFromArray(['captains', 'crews'])]);
+                    const riddleTitleEnding = helpers.getRandomFromArray(titleEndings);
+                    const title = `${riddleTitleName} ${riddleTitleEnding}`;
+
+                    db.insertRiddle(title, 0, 0, null, null, null, 0, directions, treasure.id, 1, (err, riddle) => {
                       if (err) {
                         console.log(err);
                         res.status(500).send('RIDDLE COULD NOT BE INSERTED');
