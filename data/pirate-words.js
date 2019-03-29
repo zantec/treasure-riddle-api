@@ -79,5 +79,11 @@ module.exports.crewNames = [
   'The Lucky Four',
   'The Undaunted',
   'The Samwell Pirates',
-  'The '
+];
+
+module.exports.waterBodies = [
+  'Canal',
+  'Stream',
+  'Creek',
+  'River',
 ];
